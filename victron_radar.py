@@ -57,35 +57,58 @@ def send_email_alert(subject, body):
         print(f"Failed to send email: {e}")
 
 def check_page(url, page_type):
-    print(f"Checking {page_type} page: {url}")
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=15)
-        if response.status_code != 200:
-            print(f"Failed to load page. Status code: {response.status_code}")
-            return
-        
-        soup = BeautifulSoup(response.text, "html.parser")
-        rows = soup.find_all("tr")
-        found_count = 0
-        
-        for row in rows:
-            text = row.get_text().lower()
-            for key, target in TARGETS.items():
-                if key in text:
-                    if "out of stock" not in text and ("in stock" in text or "buy" in text or "add to cart" in text):
-                        price_match = re.search(r'\$(\d+(?:\.\d{2})?)', text)
-                        if price_match:
-                            price = float(price_match.group(1))
-                            if price <= target["max_price"]:
-                                subject = f"Victron Deal Found: {target['name']} (${price:.2f})"
-                                body = f"🚨 VICTRON DEAL FOUND [{page_type}] 🚨\nItem: {target['name']}\nPrice: ${price:.2f} (Target: <=${target['max_price']:.2f})\nLink: {url}"
-                                send_email_alert(subject, body)
-                                found_count += 1
-                                
-        print(f"Finished checking {page_type}. Deals matched: {found_count}")
-        
-    except Exception as e:
-        print(f"Error checking {page_type}: {e}")
+  print(f"Checking {page_type} page: {url}")
+  try:
+    # --- GITHUB WORKFLOW TEST MODE ---
+    if os.environ.get("TEST_MODE") == "true":
+      print(f"🧪 [TEST MODE] Injecting mock HTML for {page_type}...")
+      # Simulating a Cerbo GX in stock for $150.00 (below your $180 target)
+      html_content = """
+            <table>
+                <tr>
+                    <td>Victron Cerbo GX - Open Box Unit</td>
+                    <td>In Stock</td>
+                    <td>$150.00</td>
+                </tr>
+            </table>
+            """
+    else:
+      # --- LIVE SCRAPING MODE ---
+      response = requests.get(url, headers=HEADERS, timeout=15)
+      if response.status_code != 200:
+        print(f"Failed to load page. Status code: {response.status_code}")
+        return
+      html_content = response.text
+
+    # --- EXACT PARSING & LOGIC ---
+    soup = BeautifulSoup(html_content, "html.parser")
+    rows = soup.find_all("tr")
+    found_count = 0
+
+    for row in rows:
+      text = row.get_text().lower()
+      for key, target in TARGETS.items():
+        if key in text:
+          if "out of stock" not in text and (
+              "in stock" in text or "buy" in text or "add to cart" in text
+          ):
+            price_match = re.search(r"\$(\d+(?:\.\d{2})?)", text)
+            if price_match:
+              price = float(price_match.group(1))
+              if price <= target["max_price"]:
+                subject = f"Victron Deal Found: {target['name']} (${price:.2f})"
+                body = (
+                    f"🚨 VICTRON DEAL FOUND [{page_type}] 🚨\nItem:"
+                    f" {target['name']}\nPrice: ${price:.2f} (Target:"
+                    f" <=${target['max_price']:.2f})\nLink: {url}"
+                )
+                send_email_alert(subject, body)
+                found_count += 1
+
+    print(f"Finished checking {page_type}. Deals matched: {found_count}")
+
+  except Exception as e:
+    print(f"Error checking {page_type}: {e}")
 
 if __name__ == "__main__":
     print("Starting Victron Inventory Radar Scan...")
