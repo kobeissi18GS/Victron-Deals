@@ -26,4 +26,4 @@ jobs:
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-          TEST_MODE: "false"  # <-- Enables test mode on GitHub
+          TEST_MODE: "true"  # <-- Enables test mode on GitHub
