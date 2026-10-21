@@ -31,30 +31,30 @@ HEADERS = {
 }
 
 def send_email_alert(subject, body):
-    print(f"ALERT TRIGGERED: {subject}")
-    sender_email = os.environ.get("SENDER_EMAIL")
-    sender_password = os.environ.get("SENDER_PASSWORD")
-    receiver_email = os.environ.get("RECEIVER_EMAIL")
+  print(f"ALERT TRIGGERED: {subject}")
+  sender_email = os.environ.get("SENDER_EMAIL")
+  sender_password = os.environ.get("SENDER_PASSWORD")
+  receiver_email = os.environ.get("RECEIVER_EMAIL")
 
-    if not (sender_email and sender_password and receiver_email):
-        print("Missing email environment variables. Cannot send notification.")
-        return
+  if not (sender_email and sender_password and receiver_email):
+    print("Missing email environment variables. Cannot send notification.")
+    return
 
-    try:
-        msg = MIMEMultipart()
-        msg["From"] = sender_email
-        msg["To"] = receiver_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain"))
+  try:
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
 
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-        server.quit()
-        print("Successfully sent email notification!")
-    except Exception as e:
-        print(f"Failed to send email: {e}")
+    # Use Port 465 with SMTP_SSL for robust cloud delivery
+    server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+    server.login(sender_email, sender_password)
+    server.send_message(msg)
+    server.quit()
+    print("Successfully sent email notification!")
+  except Exception as e:
+    print(f"Failed to send email: {e}")
 
 def check_page(url, page_type):
   print(f"Checking {page_type} page: {url}")
